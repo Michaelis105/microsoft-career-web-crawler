@@ -1,6 +1,13 @@
 # microsoft-career-web-crawler
-Personal web crawler that retrieves Microsoft software engineering positions based on filters
+Personal web crawler that retrieves Microsoft software engineering positions based on filters.
 
+Use with care and please do not DDOS Microsoft.
+
+## How to use
+```
 pip install beautifulsoup4
+```
 
+```
 python microsoft_career_web_crawler.py
+```
