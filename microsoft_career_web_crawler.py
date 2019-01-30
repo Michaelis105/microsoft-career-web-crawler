@@ -61,8 +61,8 @@ def getListOfPositions(position_name : str):
         "selected_fields": {
             "country": ["United States"],
             "category": ["Engineering"],
-            "employmentType": ["Full-Time"],
-            "requisitionRoleType": ["Individual Contributor"]
+            #"employmentType": ["Full-Time"],
+            #"requisitionRoleType": ["Individual Contributor"]
         },
                            
         # Only change these fields if you know what you are doing
@@ -80,7 +80,7 @@ def getListOfPositions(position_name : str):
         "pageName": "search-results",
         "size": 10000, # Use small numbers when testing - don't be a jerk to Microsoft.
                        # Preferred max is 10000.
-                       # Note: This returns first `size` results that Microsoft returns
+                       # Note: This returns first `size` results that Microsoft returns.
         "clearAll": False,
         "jdsource": "facets",
         "isSliderEnable": False,
@@ -110,6 +110,7 @@ def isMatchingJob(job : dict):
         Custom criteria
             - Do not match senior or similar, specialized titular roles
             - Consider only SDE I-II levels (59-62) (this is hidden to user)
+            - Consider only jobs posted after January 2019 (typically when jobID > 568000)
     '''    
     try:
         titleSplit = job["title"].split()
@@ -124,7 +125,8 @@ def isMatchingJob(job : dict):
                 return False
 
         targetLevel = atoi(job["targetLevel"])
-        return not (targetLevel < 59 or targetLevel > 62)
+        jobID = atoi(job["jobId"])
+        return not (targetLevel < 59 or targetLevel > 62) and (jobID > 568000)
     except KeyError as ke:
         print("Error processing job with title: " + job["title"])
         return False
@@ -142,21 +144,25 @@ def isMatchingJobInterviewDay(job_url : str):
     if not job_url:
         print("Cannot check empty job_url")
         return False
-    
-    try:
-        job_page = urlopen(job_specific_url)
-        soup = BeautifulSoup(job_page, 'html.parser')
 
-        # Microsoft hid job description information in JavaScript.
-        # Assuming something has to render it first to display to user.
-        # Search entire script value - very inefficient!
-        script = soup.find("script", type="text/javascript")        
-        return script.text.find("By applying to this position") != -1
-        # TODO: Enhance to ignore all past interview days
-    except:
-        # Frequent 502 errors occur, need some way to retry.
-        print("Error processing url: " + job_specific_url)
-        
+    error_count = 0
+
+    while (error_count <= 2):
+        try:
+            job_page = urlopen(job_specific_url)
+            soup = BeautifulSoup(job_page, 'html.parser')
+
+            # Microsoft hid job description information in JavaScript.
+            # Assuming something has to render it first to display to user.
+            # Search entire script value - very inefficient!
+            script = soup.find("script", type="text/javascript")        
+            return script.text.find("invitation-only Interview Day") != -1
+            # TODO: Enhance to ignore all past interview days
+        except:
+            # Frequent 502 errors occur
+            error_count += 1
+            
+    print("Error processing url: " + job_specific_url)
     return False
 
 beginTime = datetime.datetime.now()
